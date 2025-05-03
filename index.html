@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ジャイロ連動カクテルシェーカー</title>
+  <style>
+    body {
+      margin: 0;
+      background: #222;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+      margin: 0 auto;
+      background: url('shaker.png') no-repeat center;
+      background-size: contain;
+      height: 100vh;
+      width: 100vw;
+    }
+  </style>
+</head>
+<body>
+<canvas id="world"></canvas>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+<script>
+  const { Engine, Render, Runner, Bodies, Composite, Body, Events } = Matter;
+  const canvas = document.getElementById('world');
+  const engine = Engine.create();
+  const world = engine.world;
+
+  const render = Render.create({
+    canvas: canvas,
+    engine: engine,
+    options: {
+      width: window.innerWidth,
+      height: window.innerHeight,
+      wireframes: false,
+      background: 'transparent'
+    }
+  });
+
+  Render.run(render);
+  const runner = Runner.create();
+  Runner.run(runner, engine);
+
+  // 液体粒子の作成
+  const bubbles = [];
+  for (let i = 0; i < 50; i++) {
+    const bubble = Bodies.circle(
+      window.innerWidth / 2 + Math.random() * 50 - 25,
+      window.innerHeight / 2 + Math.random() * 50 - 25,
+      10,
+      {
+        restitution: 0.5,
+        friction: 0.1,
+        density: 0.001,
+        render: { fillStyle: `hsl(${Math.random() * 360}, 80%, 60%)` }
+      }
+    );
+    bubbles.push(bubble);
+  }
+  Composite.add(world, bubbles);
+
+  // シェーカーの壁
+  const wallThickness = 50;
+  const walls = [
+    Bodies.rectangle(window.innerWidth / 2, window.innerHeight + wallThickness / 2, window.innerWidth, wallThickness, { isStatic: true }), // 底
+    Bodies.rectangle(-wallThickness / 2, window.innerHeight / 2, wallThickness, window.innerHeight, { isStatic: true }), // 左
+    Bodies.rectangle(window.innerWidth + wallThickness / 2, window.innerHeight / 2, wallThickness, window.innerHeight, { isStatic: true }) // 右
+  ];
+  Composite.add(world, walls);
+
+  // ジャイロセンサーで重力方向を変更
+  if (window.DeviceOrientationEvent) {
+    window.addEventListener('deviceorientation', function (event) {
+      const gx = event.gamma || 0;
+      const gy = event.beta || 0;
+      engine.gravity.x = gx / 90;
+      engine.gravity.y = gy / 90;
+    }, true);
+  } else {
+    alert("ジャイロセンサーに対応していません。スマートフォンで開いてください。");
+  }
+</script>
+</body>
+</html>
