@@ -2,86 +2,93 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ジャイロ連動カクテルシェーカー</title>
   <style>
     body {
       margin: 0;
-      background: #222;
       overflow: hidden;
+      background: #222;
     }
     canvas {
       display: block;
-      margin: 0 auto;
-      background: url('shaker.png') no-repeat center;
-      background-size: contain;
-      height: 100vh;
-      width: 100vw;
     }
   </style>
 </head>
 <body>
-<canvas id="world"></canvas>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
-<script>
-  const { Engine, Render, Runner, Bodies, Composite, Body, Events } = Matter;
-  const canvas = document.getElementById('world');
-  const engine = Engine.create();
-  const world = engine.world;
-
-  const render = Render.create({
-    canvas: canvas,
-    engine: engine,
-    options: {
-      width: window.innerWidth,
-      height: window.innerHeight,
-      wireframes: false,
-      background: 'transparent'
+  <canvas id="canvas"></canvas>
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    function resize() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
     }
-  });
+    window.addEventListener('resize', resize);
+    resize();
 
-  Render.run(render);
-  const runner = Runner.create();
-  Runner.run(runner, engine);
+    // シェイカーのパラメータ
+    const shaker = {
+      x: width / 2,
+      y: height / 2,
+      radius: 100,
+      height: 300,
+      angle: 0
+    };
 
-  // 液体粒子の作成
-  const bubbles = [];
-  for (let i = 0; i < 50; i++) {
-    const bubble = Bodies.circle(
-      window.innerWidth / 2 + Math.random() * 50 - 25,
-      window.innerHeight / 2 + Math.random() * 50 - 25,
-      10,
-      {
-        restitution: 0.5,
-        friction: 0.1,
-        density: 0.001,
-        render: { fillStyle: `hsl(${Math.random() * 360}, 80%, 60%)` }
-      }
-    );
-    bubbles.push(bubble);
-  }
-  Composite.add(world, bubbles);
+    // 液体のパラメータ
+    let liquidLevel = 0.6; // 60% filled
+    let tiltX = 0;
+    let tiltY = 0;
 
-  // シェーカーの壁
-  const wallThickness = 50;
-  const walls = [
-    Bodies.rectangle(window.innerWidth / 2, window.innerHeight + wallThickness / 2, window.innerWidth, wallThickness, { isStatic: true }), // 底
-    Bodies.rectangle(-wallThickness / 2, window.innerHeight / 2, wallThickness, window.innerHeight, { isStatic: true }), // 左
-    Bodies.rectangle(window.innerWidth + wallThickness / 2, window.innerHeight / 2, wallThickness, window.innerHeight, { isStatic: true }) // 右
-  ];
-  Composite.add(world, walls);
+    // ジャイロセンサーのデータ取得
+    window.addEventListener('deviceorientation', (event) => {
+      // gamma: 左右の傾き (-90 to 90)
+      // beta: 前後の傾き (-180 to 180)
+      tiltX = event.gamma || 0;
+      tiltY = event.beta || 0;
+    });
 
-  // ジャイロセンサーで重力方向を変更
-  if (window.DeviceOrientationEvent) {
-    window.addEventListener('deviceorientation', function (event) {
-      const gx = event.gamma || 0;
-      const gy = event.beta || 0;
-      engine.gravity.x = gx / 90;
-      engine.gravity.y = gy / 90;
-    }, true);
-  } else {
-    alert("ジャイロセンサーに対応していません。スマートフォンで開いてください。");
-  }
-</script>
+    function drawShaker() {
+      ctx.save();
+      ctx.translate(shaker.x, shaker.y);
+      ctx.rotate((tiltX / 180) * Math.PI); // 左右の傾きに応じて回転
+      ctx.fillStyle = '#ccc';
+      ctx.beginPath();
+      ctx.moveTo(-shaker.radius, -shaker.height / 2);
+      ctx.lineTo(shaker.radius, -shaker.height / 2);
+      ctx.lineTo(shaker.radius, shaker.height / 2);
+      ctx.lineTo(-shaker.radius, shaker.height / 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawLiquid() {
+      ctx.save();
+      ctx.translate(shaker.x, shaker.y);
+      ctx.rotate((tiltX / 180) * Math.PI);
+      ctx.fillStyle = 'rgba(100, 150, 255, 0.8)';
+      const liquidHeight = shaker.height * liquidLevel;
+      ctx.beginPath();
+      ctx.moveTo(-shaker.radius, shaker.height / 2);
+      ctx.lineTo(-shaker.radius, shaker.height / 2 - liquidHeight);
+      ctx.lineTo(shaker.radius, shaker.height / 2 - liquidHeight);
+      ctx.lineTo(shaker.radius, shaker.height / 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, width, height);
+      drawShaker();
+      drawLiquid();
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+  </script>
 </body>
 </html>
