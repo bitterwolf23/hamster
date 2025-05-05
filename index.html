@@ -3,92 +3,106 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ジャイロ連動カクテルシェーカー</title>
+  <title>ハムスターカクテル占い</title>
   <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-      background: #222;
-    }
-    canvas {
-      display: block;
-    }
+    body { margin: 0; font-family: sans-serif; background: #f2f2f2; text-align: center; }
+    #chatbox { height: 200px; overflow-y: auto; border: 1px solid #ccc; margin: 20px; padding: 10px; background: white; }
+    #input-area { margin: 20px; }
+    canvas { width: 100vw; height: 50vh; background: #aad; }
+    #shake-info, #result, #save-btn { display: none; margin: 20px; }
   </style>
 </head>
 <body>
-  <canvas id="canvas"></canvas>
+  <h1>🐹ハムスターカクテル占い🐹</h1>
+  <div id="chatbox"></div>
+  <div id="input-area">
+    <input type="text" id="user-input" placeholder="素材を相談してみよう..." />
+    <button onclick="handleUserInput()">送信</button>
+  </div>
+
+  <canvas id="liquid-canvas"></canvas>
+  <div id="shake-info">📱シェイクしてカクテルを混ぜよう！</div>
+  <div id="result">
+    <h2>🎉カクテル完成！🎉</h2>
+    <img id="cocktail-img" src="" alt="完成したカクテル" style="width:200px;" />
+    <p id="advice-text"></p>
+    <button id="save-btn" onclick="saveImage()">画像を保存</button>
+  </div>
+
   <script>
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    let width, height;
-    function resize() {
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
+    const chatbox = document.getElementById('chatbox');
+    const userInput = document.getElementById('user-input');
+    const shakeInfo = document.getElementById('shake-info');
+    const result = document.getElementById('result');
+    const adviceText = document.getElementById('advice-text');
+
+    let mixing = false;
+    let shakeCount = 0;
+
+    const materials = ['イチゴ', 'バナナ', 'ミント', 'ブルーベリー'];
+    const advices = [
+      '今日のあなたの運勢は“情熱の赤”。挑戦を恐れず進んでみよう！',
+      '笑顔が幸運を引き寄せる日。自然体でいきましょう。',
+      '迷った時は一度立ち止まって深呼吸してみて。',
+    ];
+
+    function appendMessage(sender, text) {
+      const div = document.createElement('div');
+      div.textContent = `${sender}: ${text}`;
+      chatbox.appendChild(div);
+      chatbox.scrollTop = chatbox.scrollHeight;
     }
-    window.addEventListener('resize', resize);
-    resize();
 
-    // シェイカーのパラメータ
-    const shaker = {
-      x: width / 2,
-      y: height / 2,
-      radius: 100,
-      height: 300,
-      angle: 0
-    };
+    function handleUserInput() {
+      const text = userInput.value.trim();
+      if (!text) return;
+      appendMessage('あなた', text);
 
-    // 液体のパラメータ
-    let liquidLevel = 0.6; // 60% filled
-    let tiltX = 0;
-    let tiltY = 0;
+      // 素材決定
+      const selected = materials[Math.floor(Math.random() * materials.length)];
+      setTimeout(() => {
+        appendMessage('ハムスター', `なるほど～。それなら「${selected}」が良さそう！`);
+        setTimeout(() => {
+          appendMessage('ハムスター', 'では！カクテルに投入するね！');
+          startMixing(selected);
+        }, 1000);
+      }, 500);
 
-    // ジャイロセンサーのデータ取得
+      userInput.value = '';
+    }
+
+    function startMixing(material) {
+      shakeInfo.style.display = 'block';
+      mixing = true;
+      shakeCount = 0;
+    }
+
     window.addEventListener('deviceorientation', (event) => {
-      // gamma: 左右の傾き (-90 to 90)
-      // beta: 前後の傾き (-180 to 180)
-      tiltX = event.gamma || 0;
-      tiltY = event.beta || 0;
+      if (!mixing) return;
+      const motion = Math.abs(event.beta) + Math.abs(event.gamma);
+      if (motion > 50) {
+        shakeCount++;
+        if (shakeCount > 15) {
+          mixing = false;
+          finishCocktail();
+        }
+      }
     });
 
-    function drawShaker() {
-      ctx.save();
-      ctx.translate(shaker.x, shaker.y);
-      ctx.rotate((tiltX / 180) * Math.PI); // 左右の傾きに応じて回転
-      ctx.fillStyle = '#ccc';
-      ctx.beginPath();
-      ctx.moveTo(-shaker.radius, -shaker.height / 2);
-      ctx.lineTo(shaker.radius, -shaker.height / 2);
-      ctx.lineTo(shaker.radius, shaker.height / 2);
-      ctx.lineTo(-shaker.radius, shaker.height / 2);
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
+    function finishCocktail() {
+      document.getElementById('cocktail-img').src = 'https://placekitten.com/300/300'; // 仮画像
+      adviceText.textContent = advices[Math.floor(Math.random() * advices.length)];
+      shakeInfo.style.display = 'none';
+      result.style.display = 'block';
+      document.getElementById('save-btn').style.display = 'inline-block';
     }
 
-    function drawLiquid() {
-      ctx.save();
-      ctx.translate(shaker.x, shaker.y);
-      ctx.rotate((tiltX / 180) * Math.PI);
-      ctx.fillStyle = 'rgba(100, 150, 255, 0.8)';
-      const liquidHeight = shaker.height * liquidLevel;
-      ctx.beginPath();
-      ctx.moveTo(-shaker.radius, shaker.height / 2);
-      ctx.lineTo(-shaker.radius, shaker.height / 2 - liquidHeight);
-      ctx.lineTo(shaker.radius, shaker.height / 2 - liquidHeight);
-      ctx.lineTo(shaker.radius, shaker.height / 2);
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
+    function saveImage() {
+      const link = document.createElement('a');
+      link.href = document.getElementById('cocktail-img').src;
+      link.download = 'my_cocktail.png';
+      link.click();
     }
-
-    function animate() {
-      ctx.clearRect(0, 0, width, height);
-      drawShaker();
-      drawLiquid();
-      requestAnimationFrame(animate);
-    }
-
-    animate();
   </script>
 </body>
 </html>
