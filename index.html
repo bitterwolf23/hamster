@@ -1,108 +1,89 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ハムスターカクテル占い</title>
+  <meta charset="UTF-8">
+  <title>ハムスターカクテル診断</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { margin: 0; font-family: sans-serif; background: #f2f2f2; text-align: center; }
-    #chatbox { height: 200px; overflow-y: auto; border: 1px solid #ccc; margin: 20px; padding: 10px; background: white; }
-    #input-area { margin: 20px; }
-    canvas { width: 100vw; height: 50vh; background: #aad; }
-    #shake-info, #result, #save-btn { display: none; margin: 20px; }
+    body { font-family: "Arial", sans-serif; background: #fffbe6; color: #333; text-align: center; padding: 20px; }
+    #chat { max-width: 600px; margin: 0 auto; text-align: left; background: #fff; border: 1px solid #ccc; border-radius: 10px; padding: 20px; }
+    .hamster { color: #ff69b4; font-weight: bold; }
+    .user { margin-top: 10px; }
+    #inputArea { margin-top: 20px; }
+    #result { margin-top: 20px; font-size: 1.2em; background: #f0fff0; padding: 10px; border-radius: 10px; display: none; }
+    button { padding: 8px 16px; margin-top: 10px; font-size: 1em; }
   </style>
 </head>
 <body>
-  <h1>🐹ハムスターカクテル占い🐹</h1>
-  <div id="chatbox"></div>
-  <div id="input-area">
-    <input type="text" id="user-input" placeholder="素材を相談してみよう..." />
-    <button onclick="handleUserInput()">送信</button>
-  </div>
 
-  <canvas id="liquid-canvas"></canvas>
-  <div id="shake-info">📱シェイクしてカクテルを混ぜよう！</div>
-  <div id="result">
-    <h2>🎉カクテル完成！🎉</h2>
-    <img id="cocktail-img" src="" alt="完成したカクテル" style="width:200px;" />
-    <p id="advice-text"></p>
-    <button id="save-btn" onclick="saveImage()">画像を保存</button>
-  </div>
+<h1>🐹 ハムスターのカクテル素材診断</h1>
+<div id="chat">
+  <div class="hamster">ハムスター: こんにちはデチ！今の気分を教えてほしいデチ〜！</div>
+</div>
 
-  <script>
-    const chatbox = document.getElementById('chatbox');
-    const userInput = document.getElementById('user-input');
-    const shakeInfo = document.getElementById('shake-info');
-    const result = document.getElementById('result');
-    const adviceText = document.getElementById('advice-text');
+<div id="inputArea">
+  <input type="text" id="userInput" placeholder="例：最近ちょっと疲れてる…" size="40">
+  <br>
+  <button onclick="processInput()">送信</button>
+</div>
 
-    let mixing = false;
-    let shakeCount = 0;
+<div id="result"></div>
 
-    const materials = ['イチゴ', 'バナナ', 'ミント', 'ブルーベリー'];
-    const advices = [
-      '今日のあなたの運勢は“情熱の赤”。挑戦を恐れず進んでみよう！',
-      '笑顔が幸運を引き寄せる日。自然体でいきましょう。',
-      '迷った時は一度立ち止まって深呼吸してみて。',
-    ];
+<script>
+  const ingredients = [
+    "いちご", "バナナ", "ブルーベリー", "ミント", "ハチミツ",
+    "レモン", "ゆず", "ジンジャー", "ライム", "オレンジ",
+    "キウイ", "マシュマロ", "チョコレート", "バニラ", "シナモン",
+    "コーヒー", "ピーチ", "さくらんぼ", "メロン", "スイカ",
+    "ぶどう", "カシス", "パイン", "抹茶", "ヨーグルト",
+    "牛乳", "紅茶", "豆乳", "ココナッツ", "ソーダ"
+  ];
 
-    function appendMessage(sender, text) {
-      const div = document.createElement('div');
-      div.textContent = `${sender}: ${text}`;
-      chatbox.appendChild(div);
-      chatbox.scrollTop = chatbox.scrollHeight;
-    }
+  function processInput() {
+    const input = document.getElementById("userInput").value.trim();
+    if (!input) return;
 
-    function handleUserInput() {
-      const text = userInput.value.trim();
-      if (!text) return;
-      appendMessage('あなた', text);
+    const chat = document.getElementById("chat");
+    const userDiv = document.createElement("div");
+    userDiv.className = "user";
+    userDiv.textContent = "あなた: " + input;
+    chat.appendChild(userDiv);
 
-      // 素材決定
-      const selected = materials[Math.floor(Math.random() * materials.length)];
-      setTimeout(() => {
-        appendMessage('ハムスター', `なるほど～。それなら「${selected}」が良さそう！`);
-        setTimeout(() => {
-          appendMessage('ハムスター', 'では！カクテルに投入するね！');
-          startMixing(selected);
-        }, 1000);
-      }, 500);
+    // 擬似AI的な素材選定
+    const keywordMap = {
+      "疲": ["ハチミツ", "ミント", "レモン"],
+      "元気": ["ソーダ", "パイン", "ライム"],
+      "悲": ["チョコレート", "ミルク", "バニラ"],
+      "幸せ": ["いちご", "ピーチ", "オレンジ"],
+      "楽": ["ぶどう", "カシス", "さくらんぼ"],
+      "寒": ["ジンジャー", "シナモン", "抹茶"],
+      "暑": ["ソーダ", "スイカ", "メロン"]
+    };
 
-      userInput.value = '';
-    }
+    let selected = [];
 
-    function startMixing(material) {
-      shakeInfo.style.display = 'block';
-      mixing = true;
-      shakeCount = 0;
-    }
-
-    window.addEventListener('deviceorientation', (event) => {
-      if (!mixing) return;
-      const motion = Math.abs(event.beta) + Math.abs(event.gamma);
-      if (motion > 50) {
-        shakeCount++;
-        if (shakeCount > 15) {
-          mixing = false;
-          finishCocktail();
-        }
+    for (let key in keywordMap) {
+      if (input.includes(key)) {
+        selected = keywordMap[key];
+        break;
       }
-    });
-
-    function finishCocktail() {
-      document.getElementById('cocktail-img').src = 'https://placekitten.com/300/300'; // 仮画像
-      adviceText.textContent = advices[Math.floor(Math.random() * advices.length)];
-      shakeInfo.style.display = 'none';
-      result.style.display = 'block';
-      document.getElementById('save-btn').style.display = 'inline-block';
     }
 
-    function saveImage() {
-      const link = document.createElement('a');
-      link.href = document.getElementById('cocktail-img').src;
-      link.download = 'my_cocktail.png';
-      link.click();
+    if (selected.length === 0) {
+      // ランダム3種
+      selected = [...ingredients].sort(() => 0.5 - Math.random()).slice(0, 3);
     }
-  </script>
+
+    const hamsterDiv = document.createElement("div");
+    hamsterDiv.className = "hamster";
+    hamsterDiv.innerHTML = `ハムスター: なるほどデチ！じゃあ…「<b>${selected.join("・")}</b>」を入れてみるデチ！`;
+    chat.appendChild(hamsterDiv);
+
+    const result = document.getElementById("result");
+    result.innerHTML = `🧪 選ばれた素材：<b>${selected.join("・")}</b>`;
+    result.style.display = "block";
+  }
+</script>
+
 </body>
 </html>
